@@ -215,7 +215,7 @@ static void AvlMap_add(AvlMap* self, const void* key, size_t key_len, const void
 		return;
 	}
 	node* n = roots[self->id];
-	insert(n, key, key_len, value);
+	n = insert(n, key, key_len, value);
 }
 
 static void* AvlMap_get(AvlMap* self, const void* key, size_t key_len) {
