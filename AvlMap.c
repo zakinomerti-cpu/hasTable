@@ -58,7 +58,7 @@ static char* serialize(const void* key, size_t key_len) {
 	const uint8_t* b = (uint8_t*)key;
 	for(int i = 0; i < key_len; i+=1) {
 		char l = to_hex(b[i] & 0xF);
-		char h = to_hex((rotate_left(b[i], 4, 8) & 0xF));
+		char h = to_hex((char)rotate_left(b[i], 4, 8 & 0xF));
 		out[strpos++] = h;
 		out[strpos++] = l;
 	}
@@ -176,7 +176,7 @@ static node* insert(node* p, const void* k, size_t kl, const void* v) {
 	return balance(p);
 }
 
-static void* get(node* p, const void* k, size_t kl) {
+static const void* get(node* p, const void* k, size_t kl) {
 	if( !p ) {
 		return NULL;
 	}
@@ -194,103 +194,36 @@ static void* get(node* p, const void* k, size_t kl) {
 		return get(p->right, k, kl);
 	}
 
-	return (void*)p->value;
+	return p->value;
 }
 
 
 
 
 //-----------------------------------------------------------------------------
-//dynamic void array
+//dynamic avl map
 //-----------------------------------------------------------------------------
-size_t roots_count = 0;
-static node** roots;
-
-
 static void AvlMap_add(AvlMap* self, const void* key, size_t key_len, const void* value) {
 	if(!self) return;
-	if(self->id == -1) return;
-	if(!roots[self->id]) {
-		roots[self->id] = node_create(key, key_len, value);
-		return;
-	}
-	node* n = roots[self->id];
-	n = insert(n, key, key_len, value);
+	self->size+=1;
+	self->root = insert(self->root, key, key_len, value);
 }
 
 static void* AvlMap_get(AvlMap* self, const void* key, size_t key_len) {
-	if(!self) return NULL;
-	if(self->id == -1) return NULL;
-	if(!roots[self->id]) {
-		return NULL;
-	}
-	node* n = roots[self->id];
-	return get(n, key, key_len);
+	if(!self || !self->root) return NULL;
+	return get(self->root, key, key_len);
 }
-
-static void AvlMap_set(AvlMap* self, 
-	const void* key, size_t key_len, const void* value, size_t index) 
-{
-	if(!self) return;
-	if(index >= roots_count) return;
-
-	node* n = roots[index];
-	insert(n, key, key_len, value);
-}
-
-static void AvlMap_prepare(AvlMap* self, size_t nsize) {
-	if(!self) return;
-
-	size_t old_count = roots_count;
-	size_t new_count = roots_count + nsize;
-	node** tmp = realloc(roots, sizeof(node*)*new_count);
-	if(!tmp) return;
-	roots = tmp;
-
-	for(size_t i = old_count; i < new_count; i+=1) {
-		roots[i] = NULL;
-	}
-
-	roots_count = new_count;
-}
-
 static const AvlMapInterface ops = {
 	AvlMap_add,
-	AvlMap_get,
-	AvlMap_set,
-	AvlMap_prepare
+	AvlMap_get
 };
-
-AvlMap AvlMap_create() {
-	AvlMap arr;
-	arr.size = 0;
-	arr.capacity = 0;
-	arr.ops = &ops;
-
-	node** tmp = realloc(roots, sizeof(node*)*(roots_count+1));
-	if(!tmp) arr.id = -1;
-	tmp[roots_count] = NULL;
-	roots = tmp;
-
-
-	arr.id = roots_count++;
-	return arr;
-}
 
 AvlMap* AvlMap_new() {
 	AvlMap* arr = malloc(sizeof(AvlMap));
 	if(!arr) return NULL;
 	arr->size = 0;
-	arr->capacity = 0;
+	arr->root = NULL;
 	arr->ops = &ops;
-
-	node** tmp = realloc(roots, sizeof(node*)*(roots_count+1));
-	if(!tmp) arr->id = -1;
-	tmp[roots_count] = NULL;
-	roots = tmp;
-
-
-	arr->id = roots_count++;
 	return arr;
 }
 

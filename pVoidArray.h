@@ -1,19 +1,27 @@
 #ifndef pVoidArray_header
 #define pVoidArray_header
 
+
+#include <stddef.h>
 struct pVoidArray;
 
 typedef struct {
-	void* (*get)(struct pVoidArray*, int index);
-	void* (*last)(struct pVoidArray*);
+	//getters
+	void* (*get)(const struct pVoidArray*, size_t index);
+	void* (*last)(const struct pVoidArray*);
+
+	//setters
+	void (*set)(struct pVoidArray*, void* data, size_t index);
 	void (*add)(struct pVoidArray*, void* data);
-	int (*size)(struct pVoidArray*);
-	void (*prepare)(struct pVoidArray*, int size);
+
+	//tools
+	size_t (*size)(const struct pVoidArray*);
+	void (*prepare)(struct pVoidArray*, size_t size);
 } pVoidArrayInterface;
 
 typedef struct pVoidArray {
-	int size;
-	int capacity;
+	size_t size;
+	size_t capacity;
 	void** data;
 	const pVoidArrayInterface* ops;
 } pVoidArray;

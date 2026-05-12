@@ -1,12 +1,12 @@
 #include "pVoidArray.h"
 #include <stdlib.h>
+#include <string.h>
 
-static void _add(pVoidArray* arr, void* element) {
-	void** tmp;
+static void add(pVoidArray* arr, void* element) {
 	if(arr->size >= arr->capacity) {
 		arr->capacity = (arr->capacity == 0) ? 2 :
 			arr->capacity * 2;
-		tmp = realloc(arr->data, arr->capacity * sizeof(void*));
+		void** tmp = realloc(arr->data, arr->capacity * sizeof(void*));
 		if(!tmp) return;
 		arr->data = tmp;
 	}
@@ -15,42 +15,42 @@ static void _add(pVoidArray* arr, void* element) {
 	arr->size += 1;
 }
 
-static void* _get(pVoidArray* arr, int index) {
-	if(index < 0 || index >= arr->size)
-		return NULL;
+static void set(pVoidArray* arr, void* data, size_t index) {
+	if(index >= arr->capacity) return;
+	arr->data[index] = data;
+}
+
+static void* get(const pVoidArray* arr, size_t index) {
+	if(index >= arr->capacity) return NULL;
 	return arr->data[index];
 }
 
-static void* _last(pVoidArray* arr) {
+static void* last(const pVoidArray* arr) {
 	return arr->data[arr->size-1];
 }
 
-static int _size(pVoidArray* arr) {
+static size_t size(const pVoidArray* arr) {
 	return arr->size;
 }
 
-static void _prepare(pVoidArray* self, int nsize) {
+static void prepare(pVoidArray* self, size_t new_size) {
 	if(!self) return;
 
-	size_t old_count = self->size;
-	size_t new_count = self->size + nsize;
-	void** tmp = realloc(self->data, sizeof(void*)*new_count);
-	if(!tmp) return;
-	self->data = tmp;
+	size_t new_capacity = self->size + new_size;
+	void** tmp = realloc(self->data, sizeof(void*)*new_capacity);
+	if(!tmp) return; self->data = tmp;
 
-	for(size_t i = old_count; i < new_count; i+=1) {
-		self->data[i] = NULL;
-	}
-
-	self->size = new_count;
+	memset(self->data + self->size, 0,(new_capacity - self->size) * sizeof(void*));
+	self->capacity = new_capacity;
 }
 
 static const pVoidArrayInterface ops = {
-	_get,
-	_last,
-	_add,
-	_size,
-	_prepare
+	get,
+	last,
+	set,
+	add,
+	size,
+	prepare
 };
 
 pVoidArray pVoidArray_create() {
@@ -71,7 +71,7 @@ pVoidArray* pVoidArray_new() {
 	return arr;
 }
 
-void pVoidArrayDelete(pVoidArray** arr) {
+void pVoidArray_delete(pVoidArray** arr) {
 	free((*arr)->data);
 	(*arr) = NULL;
 }
