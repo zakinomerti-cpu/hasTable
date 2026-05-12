@@ -1,0 +1,3 @@
+/home/xinitrix/progs/hasTable/CMakeFiles/main.dir
+/home/xinitrix/progs/hasTable/CMakeFiles/edit_cache.dir
+/home/xinitrix/progs/hasTable/CMakeFiles/rebuild_cache.dir

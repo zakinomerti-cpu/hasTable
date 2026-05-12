@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/xinitrix/progs/hasTable/cmake_install.cmake"
+	],
+	"Parallel" : false
+}
