@@ -1,1 +1,0 @@
-/usr/bin/cc -Wl,--dependency-file=CMakeFiles/main.dir/link.d CMakeFiles/main.dir/AvlMap.c.o CMakeFiles/main.dir/hashArray.c.o CMakeFiles/main.dir/pVoidArray.c.o CMakeFiles/main.dir/main.c.o -o main
