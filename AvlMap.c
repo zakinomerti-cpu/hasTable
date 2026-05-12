@@ -58,40 +58,13 @@ static char* serialize(const void* key, size_t key_len) {
 	const uint8_t* b = (uint8_t*)key;
 	for(int i = 0; i < key_len; i+=1) {
 		char l = to_hex(b[i] & 0xF);
-		char h = to_hex((char)rotate_left(b[i], 4, 8 & 0xF));
+		char h = to_hex((char)rotate_left(b[i], 4, 8) & 0xF);
 		out[strpos++] = h;
 		out[strpos++] = l;
 	}
 	out[strpos] = '\0';
 
 	return out;
-}
-
-static void* deserialize(const char* key) {
-	if(!key) return NULL;
-	size_t key_len = strlen(key);
-	if (key_len % 2 != 0) return NULL; 
-
-
-	uint8_t* out = malloc(key_len/2);
-	if (!out) return NULL;
-
-	uint8_t byte = 0;
-	size_t strpos = 0;
-	for(size_t i = 0; i < key_len / 2; i+=1) {
-		char h = to_dec(key[strpos++]);
-		char l = to_dec(key[strpos++]);
-
-		if (h == -1 || l == -1) {
-			free(out);
-			return NULL;
-		}
-
-		byte = (uint8_t)h;
-		byte = rotate_left(byte, 4, 8) + (uint8_t)l;
-		out[i] = byte;
-	}
-	return (void*)out;
 }
 
 
@@ -201,6 +174,56 @@ static const void* get(node* p, const void* k, size_t kl) {
 
 
 //-----------------------------------------------------------------------------
+// flat array
+//-----------------------------------------------------------------------------
+
+key_value_t* key_value_t_create(char* key, void* value) {
+	key_value_t* t = malloc(sizeof(key_value_t));
+	if (!t) return NULL;
+	t->key = key;
+	t->value = value;
+	return t;
+}
+
+void flatNodeArr_add(flatNodeArr** a, char* key, void* value) {
+	if (!*a) {
+		*a = malloc(sizeof(flatNodeArr));
+		if (!*a) return;
+		(*a)->keyArr = malloc(sizeof(flatNodeArr*));
+		(*a)->keyArr[0] = key_value_t_create(key, value);
+		(*a)->count = 1;
+		return;
+	}
+
+	key_value_t** tmp = realloc((*a)->keyArr, sizeof(key_value_t*)*((*a)->count+1));
+	if (!tmp) return; (*a)->keyArr = tmp;
+	(*a)->keyArr[(*a)->count] = key_value_t_create(key, value);
+	(*a)->count+=1;
+
+}
+
+void flatNodeArr_get_all(flatNodeArr** arr, node* p) {
+	if( !p ) {
+		return;
+	}
+	if (!p->left && !p->right) {
+		flatNodeArr_add(arr, p->key, (void* const)p->value);
+		return;
+	}
+
+	flatNodeArr_add(arr, p->key, (void* const)p->value);
+	flatNodeArr_get_all(arr, p->left);
+	flatNodeArr_get_all(arr, p->right);
+}
+
+void flatNodeArr_delete(flatNodeArr** arr) {
+	free((*arr)->keyArr); free(*arr); *arr = NULL;
+}
+
+
+
+
+//-----------------------------------------------------------------------------
 //dynamic avl map
 //-----------------------------------------------------------------------------
 static void AvlMap_add(AvlMap* self, const void* key, size_t key_len, const void* value) {
@@ -211,11 +234,20 @@ static void AvlMap_add(AvlMap* self, const void* key, size_t key_len, const void
 
 static void* AvlMap_get(AvlMap* self, const void* key, size_t key_len) {
 	if(!self || !self->root) return NULL;
-	return get(self->root, key, key_len);
+	return (void* const)get(self->root, key, key_len);
 }
+
+static void AvlMap_getAll(AvlMap* self, flatNodeArr** arr) {
+	if (!self) return;
+	flatNodeArr_get_all(arr, self->root);
+}
+
+
+
 static const AvlMapInterface ops = {
 	AvlMap_add,
-	AvlMap_get
+	AvlMap_get,
+	AvlMap_getAll
 };
 
 AvlMap* AvlMap_new() {

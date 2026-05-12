@@ -2,10 +2,19 @@
 #include "hashArray.h"
 #include <string.h>
 
+#include "AvlMap.h"
+
 typedef struct pt {
 	int x;
 	int y;
 } pt;
+
+void callback(const void *key, size_t key_len, void *value, void *args) { //калбакишончик
+	int* a = (int*)value;
+	*a *= 2;
+	printf("%d\n", *a);
+}
+
 
 int main() {
 
@@ -25,6 +34,15 @@ int main() {
 	int* qb = arr.ops->get(&arr, &key_b, sizeof(key_b));
 	int* qc = arr.ops->get(&arr, &key_c, sizeof(key_c));
 
-	printf("%d\t%d\t%d\n", *qa, *qb, *qc);
+	AvlMap* map = AvlMap_new();
+	map->ops->add(map, &b, sizeof(int), &a);
+	map->ops->add(map, &a, sizeof(int), &b);
+	flatNodeArr* flat = NULL;
+	map->ops->getAll(map, &flat);
+
+	ht_iter_cb cb = callback;
+	arr.ops->forEach(&arr, cb, NULL);
+
+	printf("%d\t%d\n", *qa, *qb);
 	return 0;
 }

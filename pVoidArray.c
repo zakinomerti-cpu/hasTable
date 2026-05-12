@@ -18,6 +18,7 @@ static void add(pVoidArray* arr, void* element) {
 static void set(pVoidArray* arr, void* data, size_t index) {
 	if(index >= arr->capacity) return;
 	arr->data[index] = data;
+	arr->size++;
 }
 
 static void* get(const pVoidArray* arr, size_t index) {

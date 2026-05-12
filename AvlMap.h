@@ -5,10 +5,25 @@
 struct AvlMap;
 struct node;
 
+typedef struct key_value_t {
+	char* key;
+	void* value;
+}key_value_t;
+
+typedef struct flatNodeArr {
+	key_value_t** keyArr;
+	size_t count;
+} flatNodeArr;
+
+void flatNodeArr_add(flatNodeArr** a, char* key, void* value);
+void flatNodeArr_get_all(flatNodeArr** arr, struct node* p);
+void flatNodeArr_delete(flatNodeArr** arr);
+
 typedef struct {
 	void (*add)(struct AvlMap*, const void* key, 
 		size_t key_len, const void* value);
 	void* (*get)(struct AvlMap*, const void* key, size_t key_len);
+	void (*getAll)(struct AvlMap*,flatNodeArr**);
 } AvlMapInterface;
 
 typedef struct AvlMap {
