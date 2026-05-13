@@ -11,6 +11,7 @@ typedef struct {
 		size_t key_len, const void* value);
 	const void* (*get)(struct hashArray* arr, const void* key, size_t key_len);
 	void (*forEach)(struct hashArray* arr, ht_iter_cb cb, void *args);
+	void (*resize)(struct hashArray* arr);
 	} hashArrayInterface;
 
 typedef struct hashArray {

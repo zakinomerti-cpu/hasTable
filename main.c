@@ -30,6 +30,8 @@ int main() {
 	arr.ops->add(&arr, &key_b, sizeof(key_b), &b);
 	arr.ops->add(&arr, &key_c, sizeof(key_c), &c);
 
+	arr.ops->resize(&arr);
+
 	int* qa = arr.ops->get(&arr,  key_a, strlen(key_a));
 	int* qb = arr.ops->get(&arr, &key_b, sizeof(key_b));
 	int* qc = arr.ops->get(&arr, &key_c, sizeof(key_c));

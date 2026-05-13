@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include "serialize_to_bytes.h"
 
 
 
@@ -17,55 +18,6 @@ typedef struct node {
 	struct node* right;
 	const void* value;
 } node;
-
-
-
-
-
-//-----------------------------------------------------------------------------
-// tools
-//-----------------------------------------------------------------------------
-static size_t rotate_left(size_t value, char n, char r) {
-	n %= r;
-	return (value << n) | (value >> (r - n));
-}
-
-static char to_hex(char b) {
-	if(b > 16) return -1;
-	if(b < 10) {
-		return '0' + b;
-	}
-	return 'A' + b - 10;
-}
-
-static char to_dec(char b) {
-	if(b >= 'A' && b <= 'F') {
-		return b - 'A' + 10;
-	}
-	if(b >= '0' && b <= '9') {
-		return b - '0';
-	}
-	return -1;
-}
-
-static char* serialize(const void* key, size_t key_len) {
-	if(!key || key_len == 0) return NULL;
-	char* out = malloc(key_len*2 + 1);
-	if(!out) return NULL;
-
-
-	size_t strpos = 0;
-	const uint8_t* b = (uint8_t*)key;
-	for(int i = 0; i < key_len; i+=1) {
-		char l = to_hex(b[i] & 0xF);
-		char h = to_hex((char)rotate_left(b[i], 4, 8) & 0xF);
-		out[strpos++] = h;
-		out[strpos++] = l;
-	}
-	out[strpos] = '\0';
-
-	return out;
-}
 
 
 

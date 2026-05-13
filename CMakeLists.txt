@@ -9,6 +9,7 @@ add_executable(main
 	${PROJECT_SOURCE_DIR}/hashArray.c
 	${PROJECT_SOURCE_DIR}/pVoidArray.c
 	${PROJECT_SOURCE_DIR}/main.c
+	${PROJECT_SOURCE_DIR}/serialize_to_bytes.c
 )
 
 
