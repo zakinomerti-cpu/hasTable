@@ -25,9 +25,9 @@ typedef struct node {
 //-----------------------------------------------------------------------------
 // avl nodes
 //-----------------------------------------------------------------------------
-static node* node_create(const void* key, size_t key_len, const void* value) {
+static node* node_create(char* key, const void* value) {
 	node* n = malloc(sizeof(node));
-	n->key = serialize(key, key_len);
+	n->key = key;
 	n->height = 1;
 	n->left = NULL;
 	n->right = NULL;
@@ -84,42 +84,105 @@ static node* balance(node* p) {
 	return p;
 }
 
-static node* insert(node* p, const void* k, size_t kl, const void* v) {
-	if( !p ) {
-		return node_create(k, kl, v);
+static int insert(node** p, char** key, const void* v) {
+	if( !*p ) {
+		*p = node_create(*key, v);
+		if (!*p) return -1;
+		return 0;
 	}
 
-	char* input_key = serialize(k, kl);
-	char* local_key = p->key;
-	int compare_result = strcmp(input_key, local_key);
-	if( compare_result < 0)
-		p->left = insert(p->left, k, kl, v);
-	else
-		p->right = insert(p->right, k, kl, v);
+	int out = 0;
+	int compare_result = strcmp((*p)->key, *key);
 
-	free(input_key);
-	return balance(p);
+	if( compare_result < 0)
+		out = insert(&(*p)->left, key, v);
+	else if ( compare_result > 0) {
+		out = insert(&(*p)->right, key, v);
+	}
+	else { //duplicate
+		free(*key);
+		*key = NULL;
+		return 1;
+	}
+
+	*p = balance(*p);
+	return out;
 }
 
-static const void* get(node* p, const void* k, size_t kl) {
+static const void* get(node* p, const char* key) {
 	if( !p ) {
 		return NULL;
 	}
 
-	char* input_key = serialize(k, kl);
-	char* local_key = p->key;
-	int compare_result = strcmp(input_key, local_key);
-	free(input_key);
+	int compare_result = strcmp(p->key, key);
 
 	if( compare_result < 0 ) {
-		return get(p->left, k, kl);
+		return get(p->left, key);
 	}
 
 	if( compare_result > 0 ) {
-		return get(p->right, k, kl);
+		return get(p->right, key);
 	}
 
 	return p->value;
+}
+
+static const void** get_double_indirect(node* p, const char* key) {
+	if( !p ) {
+		return NULL;
+	}
+
+	int compare_result = strcmp(p->key, key);
+
+	if( compare_result < 0 ) {
+		return get_double_indirect(p->left, key);
+	}
+
+	if( compare_result > 0 ) {
+		return get_double_indirect(p->right, key);
+	}
+
+	return &p->value;
+}
+
+static node* findmin(node* p) // поиск узла с минимальным ключом в дереве p
+{
+	return p->left?findmin(p->left):p;
+}
+
+static node* removemin(node* p) // удаление узла с минимальным ключом из дерева p
+{
+	if( p->left==0 )
+		return p->right;
+	p->left = removemin(p->left);
+	return balance(p);
+}
+
+static node* node_remove(node* p, const char* key)
+{
+	if( !p ) return 0;
+
+	const int k = strcmp(p->key, key);
+	if( k < 0 )
+		p->left = node_remove(p->left,key);
+	else if( k > 0 )
+		p->right = node_remove(p->right,key);
+	else //  k == p->key
+	{
+		node* q = p->left;
+		node* r = p->right;
+
+		free(p->key);
+		free(p);
+
+
+		if( !r ) return q;
+		node* min = findmin(r);
+		min->right = removemin(r);
+		min->left = q;
+		return balance(min);
+	}
+	return balance(p);
 }
 
 
@@ -178,15 +241,31 @@ void flatNodeArr_delete(flatNodeArr** arr) {
 //-----------------------------------------------------------------------------
 //dynamic avl map
 //-----------------------------------------------------------------------------
-static void AvlMap_add(AvlMap* self, const void* key, size_t key_len, const void* value) {
-	if(!self) return;
+static int AvlMap_add(AvlMap* self, const void* key, size_t key_len, const void* value) {
+	if(!self) return -2;
+
+	char* str_key = serialize(key, key_len);
+	int out = insert(&self->root, &str_key, value);
 	self->size+=1;
-	self->root = insert(self->root, key, key_len, value);
+	return out;
 }
 
 static void* AvlMap_get(AvlMap* self, const void* key, size_t key_len) {
 	if(!self || !self->root) return NULL;
-	return (void* const)get(self->root, key, key_len);
+	char* str_key = serialize(key, key_len);
+	void* const out = (void* const)get(self->root, str_key);
+	free(str_key);
+	return out;
+}
+
+static void** AvlMap_get_double_indirect(AvlMap* self,
+	const void* key, size_t key_len)
+{
+	if(!self || !self->root) return NULL;
+	char* str_key = serialize(key, key_len);
+	void** const out = (void* const)get_double_indirect(self->root, str_key);
+	free(str_key);
+	return out;
 }
 
 static void AvlMap_getAll(AvlMap* self, flatNodeArr** arr) {
@@ -194,12 +273,23 @@ static void AvlMap_getAll(AvlMap* self, flatNodeArr** arr) {
 	flatNodeArr_get_all(arr, self->root);
 }
 
+static int AvlMap_remove(AvlMap* self, const void* key, size_t key_len) {
+	if (!self) return -1;
+	char* str_key = serialize(key, key_len);
+	self->root = node_remove(self->root, str_key);
+	free(str_key);
+	self->size -=1;
+	return 0;
+}
+
 
 
 static const AvlMapInterface ops = {
 	AvlMap_add,
 	AvlMap_get,
-	AvlMap_getAll
+	AvlMap_get_double_indirect,
+	AvlMap_getAll,
+	AvlMap_remove
 };
 
 AvlMap* AvlMap_new() {

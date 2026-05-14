@@ -11,6 +11,8 @@
 
 #include "serialize_to_bytes.h"
 
+static void resize(hashArray* arr);
+
 //toolbox
 static size_t simpleHash(const void* key, size_t key_len) {
 	size_t out = 5381;
@@ -31,24 +33,28 @@ static AvlMap* getInnerArray(hashArray* arr, size_t index) {
 	return tmp;
 }
 
-static void add(hashArray* arr, const void* key,
+static int add(hashArray* arr, const void* key,
 	size_t key_len, const void* value) 
 {
 
-	if (!key || !value || key_len == 0) return;
+	if (!key || !value || key_len == 0) return -2;
 
 	size_t hashIndex = simpleHash(key, key_len) % arr->elementCount;
 	AvlMap* innerArr = getInnerArray(arr, hashIndex);
 
-	innerArr->ops->add(innerArr, key, key_len, value);
+	int out = innerArr->ops->add(innerArr, key, key_len, value);
+	if (out < 0) return -1;
 	arr->addedElementCount += 1;
 
-	if (arr->addedElementCount % 20 == 0) {
+	if (arr->addedElementCount % 10 == 0) {
 		double load_factor = (double)arr->addedElementCount / (double)arr->elementCount;
 		if (load_factor > 0.7) {
-			//resize(arr);
+			resize(arr);
 		}
 	}
+
+	return out;
+
 }
 
 static const void* get(hashArray* arr, const void* key, size_t key_len) {
@@ -56,7 +62,8 @@ static const void* get(hashArray* arr, const void* key, size_t key_len) {
 	if (!key || key_len == 0) return NULL;
 
 	size_t hashIndex = simpleHash(key, key_len) % arr->elementCount;
-	AvlMap* innerArr = getInnerArray(arr, hashIndex);
+	AvlMap* innerArr = arr->data->ops->get(arr->data, hashIndex);
+	if (!innerArr) return NULL;
 
 	return innerArr->ops->get(innerArr, key, key_len);
 }
@@ -84,6 +91,20 @@ static void forEach(hashArray* arr, ht_iter_cb cb, void *args) {
 		flatNodeArr_delete(&flatArray);
 	}
 
+}
+
+static int element_remove(hashArray* arr, const void* key, size_t key_len) {
+	size_t hashIndex = simpleHash(key, key_len) % arr->elementCount;
+	AvlMap** innerArr = (AvlMap**)arr->data->ops->get_double_indirect(arr->data, hashIndex);
+	if (!*innerArr) return -1;
+
+	arr->addedElementCount-=1;
+	int out = (*innerArr)->ops->remove((*innerArr), key, key_len);
+	if (out == 0 && (*innerArr)->size == 0) {
+		free(*innerArr);
+		*innerArr = NULL;
+	}
+	return out;
 }
 
 static void resize(hashArray* arr) {
@@ -128,10 +149,11 @@ static const hashArrayInterface ops = {
 	add,
 	get,
 	forEach,
-	resize
+	resize,
+	element_remove
 };
 
-hashArray hashArray_create(size_t size) {
+hashArray hashArray_create(const size_t size) {
 	hashArray arr;
 	arr.elementCount = size;
 	arr.addedElementCount = 0;
@@ -139,4 +161,19 @@ hashArray hashArray_create(size_t size) {
 	arr.data = pVoidArray_new();
 	arr.data->ops->prepare(arr.data, size);
 	return arr;
+}
+
+hashArray* hashArray_new(const size_t size) {
+	hashArray* arr = malloc(sizeof(hashArray));
+	arr->elementCount = size;
+	arr->addedElementCount = 0;
+	arr->ops = &ops;
+	arr->data = pVoidArray_new();
+	arr->data->ops->prepare(arr->data, size);
+	return arr;
+}
+
+void hashArray_delete(hashArray** arr) {
+	if (!*arr) return;
+	
 }

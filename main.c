@@ -43,8 +43,7 @@ int main() {
 	map->ops->getAll(map, &flat);
 
 	ht_iter_cb cb = callback;
+	arr.ops->remove(&arr, key_a, strlen(key_a));
 	arr.ops->forEach(&arr, cb, NULL);
-
-	printf("%d\t%d\n", *qa, *qb);
 	return 0;
 }

@@ -8,6 +8,7 @@ struct pVoidArray;
 typedef struct {
 	//getters
 	void* (*get)(const struct pVoidArray*, size_t index);
+	void** (*get_double_indirect)(const struct pVoidArray*, size_t index);
 	void* (*last)(const struct pVoidArray*);
 
 	//setters

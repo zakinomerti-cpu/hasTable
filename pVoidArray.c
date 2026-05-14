@@ -26,6 +26,11 @@ static void* get(const pVoidArray* arr, size_t index) {
 	return arr->data[index];
 }
 
+static void** get_double_indirect(const pVoidArray* arr, size_t index) {
+	if(index >= arr->capacity) return NULL;
+	return &arr->data[index];
+}
+
 static void* last(const pVoidArray* arr) {
 	return arr->data[arr->size-1];
 }
@@ -47,6 +52,7 @@ static void prepare(pVoidArray* self, size_t new_size) {
 
 static const pVoidArrayInterface ops = {
 	get,
+	get_double_indirect,
 	last,
 	set,
 	add,

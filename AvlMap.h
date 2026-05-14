@@ -20,10 +20,12 @@ void flatNodeArr_get_all(flatNodeArr** arr, struct node* p);
 void flatNodeArr_delete(flatNodeArr** arr);
 
 typedef struct {
-	void (*add)(struct AvlMap*, const void* key, 
+	int (*add)(struct AvlMap*, const void* key,
 		size_t key_len, const void* value);
 	void* (*get)(struct AvlMap*, const void* key, size_t key_len);
+	void** (*get_double_indirect)(struct AvlMap*, const void* key, size_t key_len);
 	void (*getAll)(struct AvlMap*,flatNodeArr**);
+	int (*remove)(struct AvlMap*, const void* key, size_t key_len);
 } AvlMapInterface;
 
 typedef struct AvlMap {
